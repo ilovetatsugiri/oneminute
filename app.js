@@ -6,89 +6,131 @@ const submitBtn = document.getElementById('submitBtn');
 const textOutput = document.getElementById('textOutput');
 const timerDisplay = document.getElementById('timer');
 
+const adminPassword = document.getElementById('adminPassword');
+const loginBtn = document.getElementById('loginBtn');
+const adminStatus = document.getElementById('adminStatus');
+
 // Firebase 데이터베이스 경로 설정
-// 이 경로에 데이터가 저장됩니다.
 const textRef = database.ref('cooperativeText'); 
 const lastSubmitRef = database.ref('lastSubmissionTime'); 
 
-// 시간 제한 상수 (밀리초 단위: 60초)
 const SUBMISSION_INTERVAL = 60000; 
+const SECRET_PASSWORD = "tatsugiri"; // 설정하신 암호
+
 let lastSubmissionTime = 0; 
+let isAdmin = false; // 관리자 상태
+let adminLoginTime = 0; // 관리자 로그인 시간 기록
 
 // ===================================
-// A. 실시간 텍스트 출력 기능 (Firebase -> UI)
+// A. 관리자 로그인 로직
 // ===================================
-
-// 'cooperativeText' 경로의 데이터가 변경될 때마다 실행됩니다.
-textRef.on('value', (snapshot) => {
-    // console.log("Firebase 텍스트 데이터 변경 감지!"); // 디버깅용
-    const textData = snapshot.val();
-    let fullText = '';
-    
-    if (textData) {
-        // Firebase의 객체 데이터를 순서대로 배열로 변환 후, join으로 하나의 문자열로 합칩니다.
-        fullText = Object.values(textData).join('');
+loginBtn.addEventListener('click', () => {
+    if (adminPassword.value === SECRET_PASSWORD) {
+        isAdmin = true;
+        adminLoginTime = Date.now(); // 로그인 시간 기록
+        adminStatus.textContent = "✅ 관리자 권한이 활성화되었습니다.";
+        adminPassword.style.display = 'none';
+        loginBtn.style.display = 'none';
+        
+        // **[핵심]** 관리자 로그인 시 게시판을 다시 로드하여 삭제 버튼을 만듭니다.
+        loadTextAndListener(); 
+    } else {
+        isAdmin = false;
+        adminStatus.textContent = "❌ 암호가 틀렸습니다. 다시 시도하세요.";
     }
-    
-    // 화면에 텍스트 업데이트
-    textOutput.textContent = fullText; 
-    
-    // 텍스트가 길어질 경우 스크롤을 맨 아래로 자동 이동
-    textOutput.scrollTop = textOutput.scrollHeight;
 });
 
+
 // ===================================
-// B. 시간 제한 및 입력 로직
+// B. 실시간 텍스트 출력 기능 (Firebase -> UI)
 // ===================================
 
-// 마지막 제출 시간 추적 및 버튼 상태 업데이트
-lastSubmitRef.on('value', (snapshot) => {
-    const serverTime = snapshot.val();
-    if (serverTime) {
-        lastSubmissionTime = serverTime;
-    }
-    updateButtonAndTimer();
-});
+function loadTextAndListener() {
+    textRef.on('value', (snapshot) => {
+        const textData = snapshot.val();
+        let textHtml = ''; 
+        
+        if (textData) {
+            const textEntries = Object.entries(textData);
+            
+            textEntries.forEach(([key, data]) => {
+                const char = typeof data === 'object' ? data.char : data; // 객체 또는 문자열 데이터 처리
+                const submittedAt = typeof data === 'object' ? data.submittedAt : 0; // 저장된 시간
 
-// 입력 버튼 클릭 이벤트
+                // 1. 관리자 삭제 버튼 추가 (isAdmin이 true일 때만)
+                let deleteButton = '';
+                if (isAdmin) {
+                    deleteButton = `<button class="delete-char-btn" data-key="${key}" style="display: block !important;">X</button>`;
+                }
+                
+                // 2. 파란색 반짝임 클래스 추가 (관리자 로그인 시간 이후의 글자에만)
+                let charClass = '';
+                // ❗ 로그인 후 입력된 글자 AND 저장된 시간이 있다면 클래스 추가
+                if (isAdmin && submittedAt > adminLoginTime) { 
+                   charClass = 'admin-char';
+                }
+
+                textHtml += `<span id="${key}" class="char-unit">${deleteButton}<span class="${charClass}">${char}</span></span>`;
+            });
+            
+            textOutput.innerHTML = textHtml; 
+            
+            // 삭제 버튼 이벤트 리스너 추가
+            if (isAdmin) {
+                document.querySelectorAll('.delete-char-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const keyToDelete = e.target.getAttribute('data-key');
+                        database.ref('cooperativeText/' + keyToDelete).remove()
+                            .catch(error => {
+                                console.error("글자 삭제 실패:", error);
+                                alert("삭제 권한이 없거나 실패했습니다.");
+                            });
+                    });
+                });
+            }
+        } else {
+            textOutput.textContent = '';
+        }
+
+        textOutput.scrollTop = textOutput.scrollHeight;
+    });
+}
+
+// ===================================
+// C. 시간 제한 및 입력 로직 수정
+// ===================================
 submitBtn.addEventListener('click', () => {
     const char = inputChar.value.trim();
     
-    // 유효성 검사
-    if (char.length !== 1) {
-        alert("정확히 한 글자만 입력해 주세요.");
+    if (char.length !== 1 || submitBtn.disabled) {
+        if (char.length !== 1) alert("정확히 한 글자만 입력해 주세요.");
         inputChar.value = '';
         return;
     }
-    
-    if (submitBtn.disabled) {
-        return;
-    }
 
-    // 데이터 저장
     const currentTime = Date.now();
+    
+    // ⭐ [수정] 관리자 여부를 데이터에 함께 저장
+    const dataToSave = {
+        char: char,
+        submittedAt: currentTime,
+        // isAdmin: isAdmin // 이 정보는 굳이 저장하지 않아도 됩니다. 시간으로 대체 가능.
+    };
 
-    // 1. 글자를 'cooperativeText'에 저장 (push()는 순서 유지를 위한 고유 ID를 생성합니다.)
-    textRef.push(char)
+    textRef.push(dataToSave) // 객체 형태로 저장
         .then(() => {
-            // 2. 'lastSubmissionTime'을 현재 시간으로 업데이트
             return lastSubmitRef.set(currentTime);
         })
         .then(() => {
-            inputChar.value = ''; // 입력창 비우기
-            updateButtonAndTimer(); // 버튼 상태 즉시 업데이트
+            inputChar.value = '';
+            updateButtonAndTimer();
         })
         .catch(error => {
-            // 오류가 발생하면 사용자에게 알리고 콘솔에 기록
             alert("입력에 실패했습니다. Firebase 연결 또는 규칙을 확인해주세요.");
-            console.error("Firebase 데이터 전송 중 오류 발생:", error);
         });
 });
 
-// ===================================
-// C. 타이머 및 버튼 상태 업데이트 함수
-// ===================================
-
+// ... 기존 updateButtonAndTimer() 함수는 그대로 둡니다. ...
 function updateButtonAndTimer() {
     const now = Date.now();
     const elapsedTime = now - lastSubmissionTime;
@@ -104,8 +146,9 @@ function updateButtonAndTimer() {
     }
 }
 
-// 1초마다 타이머와 버튼 상태를 주기적으로 업데이트
-setInterval(updateButtonAndTimer, 1000);
-
-// 초기 설정
-submitBtn.disabled = true;
+// ===================================
+// D. 초기 설정
+// ===================================
+submitBtn.disabled = true; 
+loadTextAndListener(); // 텍스트 로드 시작
+setInterval(updateButtonAndTimer, 1000); // 타이머 시작
