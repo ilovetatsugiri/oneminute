@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1분 1글자 협력 게시판</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        #textOutput {
+            min-height: 200px;
+            border: 3px solid #007bff;
+            padding: 15px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 800px;
+            text-align: left;
+            font-size: 24px;
+            line-height: 1.8;
+            word-wrap: break-word;
+            background-color: white;
+            white-space: pre-wrap; /* 줄 바꿈이 Firebase 데이터에 포함될 경우 처리 */
+        }
+        #inputChar {
+            padding: 10px;
+            width: 50px;
+            text-align: center;
+            font-size: 20px;
+            border: 2px solid #ccc;
+        }
+        #submitBtn {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #submitBtn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #timer {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+       // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyB8GZZYLDf9iHx2Xm3LFREQoclA0r3pd78",
+  authDomain: "tatsugiri.firebaseapp.com",
+  projectId: "tatsugiri",
+  storageBucket: "tatsugiri.firebasestorage.app",
+  messagingSenderId: "933794026727",
+  appId: "1:933794026727:web:a850301762c90f08be3e42",
+  measurementId: "G-MSJVVE4GTQ"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+    </script>
+</head>
+<body>
+    <h1>✍️ 1분 1글자 협력 게시판</h1>
+    <p>모두가 1분에 한 글자씩만 입력하여 하나의 이야기를 만들어 갑니다.</p>
+
+    <div id="textOutput"></div>
+
+    <div id="inputControls">
+        <input type="text" id="inputChar" maxlength="1" placeholder="한 글자">
+        <button id="submitBtn">입력</button>
+    </div>
+
+    <div id="timer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
