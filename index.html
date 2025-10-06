@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1분 1글자 협력 게시판</title>
+    <title>1분 1글자</title>
+    
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -25,14 +26,14 @@
             background-color: white;
             white-space: pre-wrap;
         }
-        #inputChar {
+        #inputChar, #adminPassword {
             padding: 10px;
-            width: 50px;
+            width: 150px;
             text-align: center;
             font-size: 20px;
             border: 2px solid #ccc;
         }
-        #submitBtn {
+        #submitBtn, #loginBtn {
             padding: 10px 20px;
             font-size: 18px;
             background-color: #28a745;
@@ -50,6 +51,45 @@
             font-size: 16px;
             color: #dc3545;
             font-weight: bold;
+        }
+        
+        /* 2. 관리자/삭제 버튼 스타일 */
+        .char-unit {
+            position: relative;
+            display: inline-block;
+            margin: 0;
+            padding: 0;
+            vertical-align: top; /* 줄 간격 정렬 */
+        }
+        .delete-char-btn {
+            position: absolute;
+            top: -15px;
+            right: -5px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            line-height: 15px;
+            text-align: center;
+            padding: 0;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 10;
+            display: none !important; /* JS로 제어 */
+        }
+        
+        /* 3. 파란색 반짝임 스타일 */
+        @keyframes pulse {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+        /* 관리자가 쓴 글자에 적용될 스타일 (app.js에서 .admin-char 클래스 부여) */
+        .admin-char {
+            color: #007bff; /* 파란색 */
+            font-weight: bold;
+            animation: pulse 1s infinite alternate;
         }
     </style>
 
@@ -71,8 +111,8 @@
     </script>
 </head>
 <body>
-    <h1>✍️ 1분 1글자 협력 게시판</h1>
-    <p>모두가 1분에 한 글자씩만 입력하여 하나의 이야기를 만들어 갑니다.</p>
+    <h1>1분1글자</h1>
+    <p>1분에 1글자씩만 쓸 수 있는 사이트.</p>
 
     <div id="textOutput"></div>
 
@@ -82,6 +122,13 @@
     </div>
 
     <div id="timer"></div>
+    
+    <div id="adminControls" style="margin-top: 30px; border-top: 1px dashed #ccc; padding-top: 20px;">
+        <h3>관리자 로그인</h3>
+        <input type="password" id="adminPassword" placeholder="암호를 입력하세요 (tatsugiri)">
+        <button id="loginBtn">로그인</button>
+        <p id="adminStatus" style="color: green; font-weight: bold;"></p>
+    </div>
 
     <script src="app.js"></script>
 </body>
